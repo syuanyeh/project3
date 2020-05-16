@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Yu Syuan Yeh" />
+    <meta name="description" content="Describe your website">
+    <link rel="shortcut icon" type="image/x-icon" href="../img/favicon.ico">
+    <title></title>
+    <meta name="generator" content="Hugo 0.70.0" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../blog/">BLOG</a></li>
+        
+        <li><a href="../projects/">PROJECTS</a></li>
+        
+        <li><a href="../resume.pdf">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../project2/"></a></strong>
+          </h3>
+        </div>
+        <div class="blog-title">
+          <h4>
+          January 1, 0001
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<div id="name-yu-syuan-yeh-eid-yy7768" class="section level2">
+<h2>#Name: Yu Syuan Yeh, eID: yy7768</h2>
+<p>output: pdf_document: default html_document: default —</p>
+<div id="part-0" class="section level5">
+<h5>part 0</h5>
+<pre class="r"><code>library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(boot)
+# the datasets I used for this project
+melanoma &lt;- melanoma</code></pre>
+<p><em>explaination of my data set</em></p>
+<p>data set “melanoma” followed 205 malignant melanoma patients from 1962 to 1977. each patient had the tumour surgically removed at Department of Plastic Surgery, University Hospital of Odense, Denmark. variale “time” shows the time each patient survived after the surgery until the end of 1977; “status” variable display the status result of patient at the end of 1977: “1” represent the patient died by melanoma, “2” represent the patient survived, and “3” indicate the patient died from causes unrelated to melanoma; “sex” variable shows patient sex: “1” = male and “0” = female; “age” variable indicate the age of the patient when they took the surgery; “year” represent the year the surgery happened; “thickness” variable measure the thinkness of tumor in mm; “ulcer” variable indicate if the the tumor is ulcerated or not: “1” = ulcered and “0” = not ulcered.</p>
+</div>
+<div id="part-1" class="section level5">
+<h5>part 1</h5>
+<pre class="r"><code># recode status variable for easier look
+manovaDf &lt;- melanoma %&gt;% mutate(status = recode(status, `1` = &quot;died by melanoma&quot;, 
+    `2` = &quot;survived&quot;, `3` = &quot;other causes death&quot;))
+head(manovaDf)</code></pre>
+<pre><code>##   time             status sex age year thickness ulcer
+## 1   10 other causes death   1  76 1972      6.76     1
+## 2   30 other causes death   1  56 1968      0.65     0
+## 3   35           survived   1  41 1977      1.34     0
+## 4   99 other causes death   0  71 1968      2.90     0
+## 5  185   died by melanoma   1  52 1965     12.08     1
+## 6  204   died by melanoma   1  28 1971      4.84     1</code></pre>
+<pre class="r"><code># assumptions of multivariate normality
+ggplot(manovaDf, aes(x = age, y = thickness)) + geom_point(alpha = 0.5) + 
+    geom_density_2d(h = 2) + coord_fixed() + facet_wrap(~status)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-2-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># MANOVA
+man &lt;- manova(cbind(age, thickness) ~ status, data = manovaDf)
+summary(man)</code></pre>
+<pre><code>##            Df  Pillai approx F num Df den Df    Pr(&gt;F)    
+## status      2 0.14503   7.8965      4    404 3.896e-06 ***
+## Residuals 202                                             
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code># follow-up one-way ANOVAs
+summary.aov(man)</code></pre>
+<pre><code>##  Response age :
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)   
+## status        2   3503 1751.28  6.6498 0.001596 **
+## Residuals   202  53198  263.36                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response thickness :
+##              Df  Sum Sq Mean Sq F value    Pr(&gt;F)    
+## status        2  180.32  90.158  11.337 2.155e-05 ***
+## Residuals   202 1606.36   7.952                      
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code># average age and average tumor thickness of each group in
+# status
+manovaDf %&gt;% group_by(status) %&gt;% summarize(mean(age), mean(thickness))</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##   status             `mean(age)` `mean(thickness)`
+##   &lt;chr&gt;                    &lt;dbl&gt;             &lt;dbl&gt;
+## 1 died by melanoma          55.1              4.31
+## 2 other causes death        65.3              3.72
+## 3 survived                  50.0              2.24</code></pre>
+<pre class="r"><code># post-hoc t test
+pairwise.t.test(manovaDf$age, manovaDf$status, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  manovaDf$age and manovaDf$status 
+## 
+##                    died by melanoma other causes death
+## other causes death 0.03637          -                 
+## survived           0.04910          0.00096           
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(manovaDf$thickness, manovaDf$status, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  manovaDf$thickness and manovaDf$status 
+## 
+##                    died by melanoma other causes death
+## other causes death 0.481            -                 
+## survived           6.4e-06          0.064             
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code># type I error and Bonferroni correction
+1 - 0.95^9</code></pre>
+<pre><code>## [1] 0.3697506</code></pre>
+<pre class="r"><code>0.05/9</code></pre>
+<pre><code>## [1] 0.005555556</code></pre>
+<p><em>interpretations and answer</em></p>
+<p>I did 1 MANOVA, follow by 2 ANOVA, then 6 t test. so a totaly of 9 statistical tests.so the probability of at least 1 type I error in my tests = 1 - .95^9 = 0.3698 -&gt; there’s a 36.98% chance for type I error if I kept my alpha value at 0.05. Therefore, the adjusted significance level, to keep the type I error at 5%, = 0.005555556. The assumptions for MANOVA are most likely not met. first and foremost, Multivariate normality graph does not look normal at all.</p>
+<p>Conclusion after adjusting for Bonferroni correction (bonferroni alpha value = .05/9 = .0056): Significant differences were found between the three groups of patients with different outcome for at least one of the dependent variables (Pillai trace = 0.145, approximate F = 7.8965, p &lt; 0.0001) the result of follow-up univariate ANOVAs shows operational age and tumor thickness are still significantly different amoung three status groups (ANOVA for age:F = 6.6498, P = 0.001596; ANOVA ofr tumor thickness: F= 11.337, P&lt;0.00001) Next, post-hoc pair wise t test was done to see which patient status group differ in operation age and tumor thickness. there is no significant difference in the operational age between patients that died by melanoma verses patients died by unrelated causes (P = 0.03637). there is also no significant surgery-taken age difference between patients died by melanoma and patients survied (P = 0.04910). significant difference in operation age was found between patients died by unrelated causes and patients that survived (P = 0.00096). when compare about the tumor thickness, patients died by melanoma have significant difference in tumor thickness when comparing to paitient that survived (P = 6.4e-06). there is no significant difference in tumor thickness when it comes to comparison between patient died by melanoma and patient died by other causes (P = 0.481), and there’s also no significant differrence between patient that survived and patient that died by other causes (P = 0.064).</p>
+</div>
+<div id="part-2" class="section level5">
+<h5>part 2</h5>
+<pre class="r"><code># randomization test null hypothesis: the mean tumor
+# thickness is the same for ulcerated tumor vs not ulcerated
+# tumor alternative hypothesis:the mean tumor thickness is
+# different for ulcerated and not ulcerated tumor recode
+# ulcer variable for easier look
+RandoTest &lt;- melanoma %&gt;% mutate(ulcer = recode(ulcer, `1` = &quot;ulcerated tumor&quot;, 
+    `0` = &quot;not ulcerated tumors&quot;))
+head(RandoTest)</code></pre>
+<pre><code>##   time status sex age year thickness                ulcer
+## 1   10      3   1  76 1972      6.76      ulcerated tumor
+## 2   30      3   1  56 1968      0.65 not ulcerated tumors
+## 3   35      2   1  41 1977      1.34 not ulcerated tumors
+## 4   99      3   0  71 1968      2.90 not ulcerated tumors
+## 5  185      1   1  52 1965     12.08      ulcerated tumor
+## 6  204      1   1  28 1971      4.84      ulcerated tumor</code></pre>
+<pre class="r"><code># null distribution of the data
+ggplot(RandoTest, aes(x = thickness, fill = ulcer)) + geom_histogram(bins = 6.5) + 
+    facet_wrap(~ulcer, ncol = 2) + theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-3-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># actual mean difference between two group
+RandoTest %&gt;% group_by(ulcer) %&gt;% summarize(avg = mean(thickness)) %&gt;% 
+    summarize(diff(avg))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   `diff(avg)`
+##         &lt;dbl&gt;
+## 1        2.53</code></pre>
+<pre class="r"><code># randomization test
+rand_dist &lt;- vector()
+for (i in 1:5000) {
+    new &lt;- data.frame(thickness = sample(RandoTest$thickness), 
+        ulcer = RandoTest$ulcer)
+    rand_dist[i] &lt;- mean(new[new$ulcer == &quot;ulcerated tumor&quot;, 
+        ]$thickness) - mean(new[new$ulcer == &quot;not ulcerated tumors&quot;, 
+        ]$thickness)
+}
+{
+    hist(rand_dist, main = &quot;&quot;, ylab = &quot;&quot;)
+    abline(v = 2.525029, col = &quot;red&quot;)
+}</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-3-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>mean(rand_dist &gt; 2.525029 | rand_dist &lt; -2.525029)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code># compare to actual t test
+t.test(data = RandoTest, thickness ~ ulcer)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  thickness by ulcer
+## t = -6.3845, df = 149.73, p-value = 2.042e-09
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -3.306499 -1.743559
+## sample estimates:
+## mean in group not ulcerated tumors      mean in group ulcerated tumor 
+##                           1.811304                           4.336333</code></pre>
+<p><em>interpretations and answer</em></p>
+<p>the true mean difference of tumor thickness between ulcerated tumor and not ulcerated tumor is 2.525 mm. After 5000 random permutations randomization test, we can see that the probability of seeing 2.525 mm as mean difference in the randomization distribution is basically 0 (the cuf off red line is off the frame of the randomization distribution histogram and 0 percent of our randomization result are more extremem than +/- 2.525). when I double checked by running independent t test on the same variable, the p value is extremely small (p = 2.042e-09), which agree with our p value from the randomization test. therefore, I rejected the null hypothesis and conclude that there is a significant difference in tumor thickness between ulcerated tumors and not ulcerated tumors.</p>
+</div>
+<div id="part-3" class="section level5">
+<h5>part 3</h5>
+<pre class="r"><code># recode ulcer for easier look
+lmdata &lt;- melanoma %&gt;% mutate(ulcer = recode(ulcer, `1` = &quot;ulceratedYes&quot;, 
+    `0` = &quot;ulceratedNo&quot;))
+head(lmdata)</code></pre>
+<pre><code>##   time status sex age year thickness        ulcer
+## 1   10      3   1  76 1972      6.76 ulceratedYes
+## 2   30      3   1  56 1968      0.65  ulceratedNo
+## 3   35      2   1  41 1977      1.34  ulceratedNo
+## 4   99      3   0  71 1968      2.90  ulceratedNo
+## 5  185      1   1  52 1965     12.08 ulceratedYes
+## 6  204      1   1  28 1971      4.84 ulceratedYes</code></pre>
+<pre class="r"><code># center age and thickness variables
+lmdata$age_c &lt;- lmdata$age - mean(lmdata$age)
+lmdata$thickness_c &lt;- lmdata$thickness - mean(lmdata$thickness)
+# linear regression model
+fit &lt;- lm(time ~ thickness_c * age_c, data = lmdata)
+summary(fit)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = time ~ thickness_c * age_c, data = lmdata)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2392.6  -586.7  -100.5   759.4  3191.8 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)       2171.872     75.481  28.774  &lt; 2e-16 ***
+## thickness_c        -55.816     27.572  -2.024 0.044255 *  
+## age_c              -17.506      4.541  -3.855 0.000156 ***
+## thickness_c:age_c   -1.828      1.547  -1.182 0.238568    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1056 on 201 degrees of freedom
+## Multiple R-squared:  0.1277, Adjusted R-squared:  0.1147 
+## F-statistic:  9.81 on 3 and 201 DF,  p-value: 4.55e-06</code></pre>
+<pre class="r"><code># regression plot
+new1 &lt;- lmdata
+new1$age_c &lt;- mean(lmdata$age_c)
+new1$mean &lt;- predict(fit, new1)
+new1$age_c &lt;- mean(lmdata$age_c) + sd(lmdata$age_c)
+new1$plus.sd &lt;- predict(fit, new1)
+new1$age_c &lt;- mean(lmdata$age_c) - sd(lmdata$age_c)
+new1$minus.sd &lt;- predict(fit, new1)
+newint &lt;- new1 %&gt;% select(time, thickness_c, mean, plus.sd, minus.sd) %&gt;% 
+    gather(age, value, -time, -thickness_c)
+ggplot(lmdata, aes(thickness_c, time)) + geom_point() + geom_line(data = new1, 
+    aes(y = mean, color = &quot;mean&quot;)) + geom_line(data = new1, aes(y = plus.sd, 
+    color = &quot;+1 sd&quot;)) + geom_line(data = new1, aes(y = minus.sd, 
+    color = &quot;-1 sd&quot;)) + labs(color = &quot;age (cont)&quot;) + theme(legend.position = c(0.9, 
+    0.2))</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># check assumptions for linear regression
+resids &lt;- fit$residuals
+fitvals &lt;- fit$fitted.values
+ggplot() + geom_point(aes(fitvals, resids)) + geom_hline(yintercept = 0, 
+    col = &quot;red&quot;)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-4-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>library(sandwich)
+library(lmtest)
+bptest(fit)</code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit
+## BP = 21.529, df = 3, p-value = 8.175e-05</code></pre>
+<pre class="r"><code># there seems to be some fanning pattern, which means
+# homoskedasticity is probably not met for my data.  so I ran
+# the Breusch-Pagan test to formally assesses
+# homoskedasticity test yield a significant result (P =
+# 8.175e-05), which means my data is not homoskedastic.
+ggplot() + geom_histogram(aes(resids), bins = 20)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-4-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot() + geom_qq(aes(sample = resids)) + geom_qq_line(aes(sample = resids), 
+    color = &quot;red&quot;)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-4-4.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># both the qq plot and histogram of residuals seems pretty
+# good. so the normality of my data is met
+
+# recompute regression results with robust standard errors
+coeftest(fit, vcov = vcovHC(fit))</code></pre>
+<pre><code>## 
+## t test of coefficients:
+## 
+##                    Estimate Std. Error t value  Pr(&gt;|t|)    
+## (Intercept)       2171.8721    80.8215 26.8725 &lt; 2.2e-16 ***
+## thickness_c        -55.8155    35.0496 -1.5925 0.1128500    
+## age_c              -17.5056     4.9482 -3.5378 0.0005011 ***
+## thickness_c:age_c   -1.8282     1.7829 -1.0254 0.3063997    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p><em>my interpretation and answers</em></p>
+<p>Full model for centered operational age X centered tumor thickness for survival time: survival time = 2171.8721 - 55.8155(thickness_c) - 17.5056(age_c) - 1.8282(thickness_c:age_c)</p>
+<p>-coefficient for Intercept: For patients with average tumor thickness and average surgery taken age, the survival time after surgery is 2171.87 days.</p>
+<p>-coefficient for ‘thickness_c’: For patients with average surgery taken age, every 1 mm increase in tumor thickness decrease the survival time of the patient by 55.82 days after the surgery on average.</p>
+<p>-coefficient for ‘age_c’: For patients with average tumor thickness, every 1 year of delay in the surgery taken age decrease the survival time of the patient by 17.5056 days after the surgery on average.</p>
+<p>-coefficient for ‘thickness_c:age_c’: controlling for the operational age of the patient, every 1 mm increase in tumor thickness further decrease the slope of thinckness on survival time by 1.8282 days.</p>
+<p>After I recompute my regression results with robust standard errors, the thickness of the tumor is no longer a significant predictors on the survival time of the patients after the surgery (before robust se, P value for thickness_c is 0.044255; after robust se, P value for thickness_c is 0.1128500). the operational age of the patient remains signifcant after the roboust standard errors. the interaction between the two varaibles was not significant in both test. all coefficient have larger standard error after the robust standard error test. this make sense because my data was not homoskedastic and the corrected SEs robust to violations of homoskedasticity. The Adjusted R-squared of my model is 0.1147, so proportion of the variation my model explained is 11.47%.</p>
+</div>
+<div id="part-4" class="section level5">
+<h5>part 4</h5>
+<pre class="r"><code># bootstrapped standard errors
+samp_distn &lt;- replicate(5000, {
+    boot_dat &lt;- sample_frac(lmdata, replace = T)
+    fit1 &lt;- lm(time ~ thickness_c * age_c, data = boot_dat)
+    coef(fit1)
+})
+
+samp_distn %&gt;% t %&gt;% as.data.frame %&gt;% summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept) thickness_c    age_c thickness_c:age_c
+## 1     78.0947    33.04041 4.930973          1.754925</code></pre>
+<pre class="r"><code>samp_distn %&gt;% t %&gt;% as.data.frame %&gt;% gather %&gt;% group_by(key) %&gt;% 
+    summarize(lower = quantile(value, 0.025), upper = quantile(value, 
+        0.975))</code></pre>
+<pre><code>## # A tibble: 4 x 3
+##   key                 lower   upper
+##   &lt;chr&gt;               &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)       2015.   2323.  
+## 2 age_c              -26.9    -7.51
+## 3 thickness_c       -127.      2.00
+## 4 thickness_c:age_c   -5.00    2.03</code></pre>
+<pre class="r"><code># the 95% CI of thickness_c and thickness_c*age_c both
+# contains 0, which means they are not significant in
+# predicting the survival time of the patients.  This result
+# agree with the result of robust SEs in the pervious
+# analysis.</code></pre>
+<p><em>my interpretation and answers</em></p>
+<p>comparisons of standard errors between original SEs, robust SEs, and bootstrapped SEs: the original SEs have the smallest standard errors in all four coefficients. Since the data is heteroskedastic, the standard errors in robust SEs is penalized and more conserved (larger than original SEs.) but since the data is pretty normal with a pretty big sample size, bootstrapped SEs didn’t change the standard errors much when compares to the result of robust SEs. so both test yield very similar standard errors across all coefficients</p>
+<p>comparison of p value between original SEs, robust SEs, and bootstrapped SEs: both the thickness of tumor and the age of operation are significant under the original SEs. however, the result changes when I used robust SEs and bootstrapped SEs on my data. both robust SEs and bootstrapped SEs yield significant result for the operational age of the patients. the tumor thickness is not a significant predictor od survival time under robust SEs and bootstrapped SEs.</p>
+</div>
+<div id="part-5" class="section level5">
+<h5>part 5</h5>
+<pre class="r"><code># centered the thickness variable and recode status for
+# easier look
+glmdata &lt;- melanoma %&gt;% mutate(status = recode(status, `1` = &quot;died by melanoma&quot;, 
+    `2` = &quot;survived&quot;, `3` = &quot;other causes death&quot;))
+
+glmdata$thickness_c &lt;- glmdata$thickness - mean(glmdata$thickness)
+head(glmdata)</code></pre>
+<pre><code>##   time             status sex age year thickness ulcer thickness_c
+## 1   10 other causes death   1  76 1972      6.76     1  3.84014634
+## 2   30 other causes death   1  56 1968      0.65     0 -2.26985366
+## 3   35           survived   1  41 1977      1.34     0 -1.57985366
+## 4   99 other causes death   0  71 1968      2.90     0 -0.01985366
+## 5  185   died by melanoma   1  52 1965     12.08     1  9.16014634
+## 6  204   died by melanoma   1  28 1971      4.84     1  1.92014634</code></pre>
+<pre class="r"><code># logistic regression
+fit2 &lt;- glm(ulcer ~ status + thickness_c, data = glmdata, family = &quot;binomial&quot;)
+summary(fit2)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = ulcer ~ status + thickness_c, family = &quot;binomial&quot;, 
+##     data = glmdata)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -3.2426  -0.7688  -0.6329   0.8435   1.8747  
+## 
+## Coefficients:
+##                          Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)               0.73500    0.31250   2.352 0.018671 *  
+## statusother causes death -0.90235    0.68898  -1.310 0.190299    
+## statussurvived           -1.30260    0.37611  -3.463 0.000533 ***
+## thickness_c               0.38475    0.08448   4.555 5.25e-06 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 281.13  on 204  degrees of freedom
+## Residual deviance: 223.36  on 201  degrees of freedom
+## AIC: 231.36
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+<pre class="r"><code>exp(coef(fit2))</code></pre>
+<pre><code>##              (Intercept) statusother causes death           statussurvived 
+##                2.0854795                0.4056143                0.2718238 
+##              thickness_c 
+##                1.4692510</code></pre>
+<pre class="r"><code># confusion matrix
+prob &lt;- predict(fit2, type = &quot;response&quot;)
+table(prediction = as.numeric(prob &gt; 0.5), glmdata$ulcer) %&gt;% 
+    addmargins</code></pre>
+<pre><code>##           
+## prediction   0   1 Sum
+##        0    98  34 132
+##        1    17  56  73
+##        Sum 115  90 205</code></pre>
+<pre class="r"><code># Accuracy, Sensitivity (TPR), Specificity (TNR), and Recall
+# (PPV) of the model
+class_diag(prob, glmdata$ulcer)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.7512195 0.6222222 0.8521739 0.7671233 0.8245411</code></pre>
+<pre class="r"><code># density of log-odds by the ulceration
+plotData &lt;- melanoma %&gt;% mutate(ulcer = recode(ulcer, `1` = &quot;ulceratedYes&quot;, 
+    `0` = &quot;ulceratedNo&quot;))
+plotData$logit &lt;- predict(fit2)
+plotData$ulcer &lt;- factor(plotData$ulcer, levels = c(&quot;ulceratedYes&quot;, 
+    &quot;ulceratedNo&quot;))
+ggplot(plotData, aes(logit, fill = ulcer)) + geom_density(alpha = 0.3) + 
+    geom_vline(xintercept = 0, lty = 2)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-6-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ROC curve and AUC
+library(plotROC)
+glmdataROC &lt;- glmdata %&gt;% mutate(prob = predict(fit2, type = &quot;response&quot;), 
+    prediction = ifelse(prob &gt; 0.5, 1, 0))
+classify &lt;- glmdataROC %&gt;% transmute(prob, prediction, truth = ulcer)
+head(classify)</code></pre>
+<pre><code>##        prob prediction truth
+## 1 0.7875388          1     1
+## 2 0.2610176          0     0
+## 3 0.2358703          0     0
+## 4 0.4563632          0     0
+## 5 0.9860660          1     1
+## 6 0.8136313          1     1</code></pre>
+<pre class="r"><code>ROCplot &lt;- ggplot(classify) + geom_roc(aes(d = truth, m = prob), 
+    n.cuts = 0)
+ROCplot</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-6-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.8245411</code></pre>
+<pre class="r"><code># 10 folds cross validation
+k = 10
+data &lt;- glmdata %&gt;% sample_frac
+folds &lt;- ntile(1:nrow(data), n = 10)
+diags &lt;- NULL
+for (i in 1:k) {
+    train &lt;- data[folds != i, ]
+    test &lt;- data[folds == i, ]
+    truth &lt;- test$ulcer
+    fit3 &lt;- glm(ulcer ~ status + thickness_c, data = train, family = &quot;binomial&quot;)
+    prob3 &lt;- predict(fit3, newdata = test, type = &quot;response&quot;)
+    diags &lt;- rbind(diags, class_diag(prob3, truth))
+}
+summarize_all(diags, mean)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.7364286 0.6056854 0.8238745 0.7258297 0.7971199</code></pre>
+<p><em>interpretations and answer</em></p>
+<p>logistic regression model: odds = 2.0854795 x 0.4056143^other causes death x 0.2718238^survived x 1.4692510 ^thickness_c</p>
+<p>-coefficient for Intercept: odds of having a ulcerated tumor for a patient with average tumor thickness and died by melanoma by the end of the study is 2.0854795</p>
+<p>-coefficient for status_other causes death: controlling for the thickness of the tumor, the odds of having a ulcerated tumor for a patient that died by melanoma unrelated causes by the end of the study is 0.4056143 times odds of patient died by melanoma</p>
+<p>-coefficient for status_survived: controlling for the thickness of the tumor, the odds of having a ulcerated tumor for a patient that is still alive by the end of the study is 0.2718238 times odds of patient died by melanoma</p>
+<p>-coefficient for thickness_c: controlling for the status of the patient by the end of the study, for every 1 mm increase in the tumor thickness, odds of patient having a ulcerated tumor increase by a factor of 1.4692510.</p>
+<p>From the confusion matrix and Accuracy, Sensitivity (TPR), Specificity (TNR), and Recall (PPV) of the model, I concluded that the logistic regression model is doing quite well in predicting the ulceration of tumors in the patient (the AUC is 0.82454). From the confusion matrix we can see that out of all 115 patients with not ulcerated tumor, our model predicted correctly 98 of them while only 17 were false positive, the true negative rate is pretty high at 85.22%. out of 90 patients with ulcerated tumors, the model correctly predicted 56 of them as true positve but 34 patients were predicted wrong as false negative, the true positive rate is ok at 62.22%. the accuracy of the model is 72.12% and the recall of the model is 76.71%, both are pretty good.</p>
+<p>The AUC is 0.82454, which means the probabilty that a randomly selected person with ulcerated tumor has 82.454% chance being positively predicted by the model than a randomly selected person without ulcerated tumor</p>
+<p>After the 10 fold cross validation test: there is a small decrease in the AUC after the 10 fold CV, the AUC went from 0.82454 to 0.8235 when predicting out of sample. but that’s still good for AUC. This means the original model doesn’t overfit by too much so the post-CV model still yield a good AUC. The accuracy of the post CV model actually increased to 74.11% while the recell decrease by a little bit to 75.9%. the true positive rate decrease quite a bit, from 85.22% to 62.39% but that means the tradeoff increases the true negative rate, which raised to 82.66% from 62.22%. All in all, the original model is pretty good at predicting whether the patients have ulcerated tumor or not in out-of-sample situation.</p>
+</div>
+<div id="part-6" class="section level5">
+<h5>part 6</h5>
+<pre class="r"><code># lasso regression on the ulceration of the tumor
+library(glmnet)
+y &lt;- as.matrix(melanoma$ulcer)
+x &lt;- model.matrix(ulcer ~ ., data = melanoma)[, -1]
+x &lt;- scale(x)
+cv &lt;- cv.glmnet(x, y, family = &quot;binomial&quot;)
+lasso &lt;- glmnet(x, y, family = &quot;binomial&quot;, lambda = cv$lambda.1se)
+coef(lasso)</code></pre>
+<pre><code>## 7 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                     s0
+## (Intercept) -0.2352706
+## time        -0.0742877
+## status      -0.1189047
+## sex          .        
+## age          .        
+## year         .        
+## thickness    0.5927301</code></pre>
+<pre class="r"><code># 10-fold CV using the lasso retained variables
+lassodata &lt;- melanoma %&gt;% select(ulcer, time, status, thickness)
+head(lassodata)</code></pre>
+<pre><code>##   ulcer time status thickness
+## 1     1   10      3      6.76
+## 2     0   30      3      0.65
+## 3     0   35      2      1.34
+## 4     0   99      3      2.90
+## 5     1  185      1     12.08
+## 6     1  204      1      4.84</code></pre>
+<pre class="r"><code>k = 10
+data &lt;- lassodata %&gt;% sample_frac
+folds &lt;- ntile(1:nrow(data), n = 10)
+diags &lt;- NULL
+for (i in 1:k) {
+    train &lt;- data[folds != i, ]
+    test &lt;- data[folds == i, ]
+    truth1 &lt;- test$ulcer
+    fit4 &lt;- glm(ulcer ~ ., data = train, family = &quot;binomial&quot;)
+    prob4 &lt;- predict(fit4, newdata = test, type = &quot;response&quot;)
+    diags &lt;- rbind(diags, class_diag(prob4, truth1))
+}
+summarize_all(diags, mean)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.7464286 0.6023232 0.8463831 0.7571429 0.7937895</code></pre>
+<p><em>interpretations and answer</em></p>
+<p>after running lasso regression on all the predictors for ulceration of tumor, only the three variables are retaianed: survival time of the patient, the ending status of the patient, and the thickness of the tumor.</p>
+<p>after doing the 10-fold CV using lasso-selected model, the out of sample accuracy for this model (AUC = 0.8170) is very similar to the result I got from part 5 (AUC = 0.8245), both of which are pretty good though. Suprisingly the lasso model didn’t improve the model from part5. I think this is due to the fact that the model I used for part 5 is already perdicting ulcer from just status and thickness while the lasso model just add the survival time to the predictors. In addition, the status of the patients at the end of the study is closely related to the survival time of the patient, which males having staus and time together in a model feels a little redundant.</p>
+</div>
+</div>
+
+              <hr>
+              <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div>
+            </div>
+          </div>
+          <hr>
+        <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+        </div>
+      </div>
+      
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../js/docs.min.js"></script>
+<script src="../js/main.js"></script>
+
+<script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

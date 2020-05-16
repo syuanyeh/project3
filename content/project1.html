@@ -1,0 +1,313 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+
+<div id="name-yu-syuan-yeh-eid-yy7768" class="section level2">
+<h2>#Name: Yu Syuan Yeh, eID: yy7768</h2>
+<p>output: pdf_document: default html_document: default —</p>
+<pre class="r"><code>library(dplyr)
+library(ggplot2)
+library(survival)
+library(tidyverse)
+library(cluster)
+# the two datasets I used for this project
+`?`(cancer)
+`?`(veteran)</code></pre>
+<div id="both-cancer-and-veteran-are-datasets-built-in-r.-cancer-contains-the-survival-data-of-lung-cancer-paitents-from-the-north-central-cancer-treatment-group.-the-dataset-contains-patients-institutional-codeinst-how-long-they-survived-in-daystime-censoring-status-of-the-patientsstatus-age-of-patientage-sex-of-patientsex-ecog-performance-score-ph.ecog-karnofsky-performance-score-rated-by-physician-ph.karno-karnofsky-performance-score-rated-by-patient-pat.karno-calories-consumed-at-mealsmeal.cal-and-weight-loss-in-last-six-monthswt.loss.-veteran-contains-the-survival-data-of-strictly-veteran-lung-cancer-patients-from-the-book-the-statistical-analysis-of-failure-time-data.-the-dataset-contains-which-of-the-two-treatment-regimens-the-patient-receive-trt-cancer-cell-type-celltype-how-long-they-survived-in-daystime-censoring-status-of-the-patientsstatus-karnofsky-performance-score-rated-by-physician-karno-months-from-diagnosis-to-randomisationdiagtimeage-of-patientage-and-whether-the-patients-received-prior-therapy-or-notprior.-the-reason-why-i-found-these-two-dat-interesting-is-i-am-really-curious-to-see-if-the-military-experience-of-the-patients-has-any-effect-on-their-survival-rate-on-lung-cancer.moreover-these-two-datasets-happen-to-have-4-common-variables-that-allows-me-to-test-multiple-varibles-interaction-on-the-suvivalship-of-patient.-i-hypothesized-that-higher-age-will-correlate-to-shorter-time-survive-higher-karnofsky-performance-score-will-correlate-to-longer-survival-time-and-being-a-veteran-will-have-younger-cancer-onset-age-with-longer-survial-rate." class="section level5">
+<h5>Both cancer and veteran are datasets built in R. “cancer” contains the survival data of lung cancer paitents from the North Central Cancer Treatment Group. The dataset contains patients’ institutional code(inst); how long they survived in days(time); censoring status of the patients(status); age of patient(age); sex of patient(sex); ECOG performance score (ph.ecog); Karnofsky performance score rated by physician (ph.karno); Karnofsky performance score rated by patient (pat.karno); calories consumed at meals(meal.cal); and weight loss in last six months(wt.loss). “veteran” contains the survival data of strictly veteran lung cancer patients from the book ‘The Statistical Analysis of Failure Time Data’. The dataset contains which of the two treatment regimens the patient receive (trt); cancer cell type (celltype); how long they survived in days(time); censoring status of the patients(status); Karnofsky performance score rated by physician (karno); months from diagnosis to randomisation(diagtime);age of patient(age); and whether the patients received prior therapy or not(prior). The reason why I found these two dat interesting is I am really curious to see if the military experience of the patients has any effect on their survival rate on lung cancer.Moreover, these two datasets happen to have 4 common variables that allows me to test multiple varibles’ interaction on the suvivalship of patient. I hypothesized that higher age will correlate to shorter time survive, higher Karnofsky performance score will correlate to longer survival time, and being a veteran will have younger cancer onset age with longer survial rate.</h5>
+<pre class="r"><code># untidy my datasets then tidy it up
+cancer %&gt;% pivot_wider(names_from = &quot;status&quot;, values_from = &quot;status&quot;) %&gt;% 
+    # untidy the dataset by breaking by &#39;status&#39; column into two
+# columns
+pivot_longer(c(&quot;2&quot;, &quot;1&quot;), names_to = &quot;status&quot;)</code></pre>
+<pre><code>## # A tibble: 456 x 11
+##     inst  time   age   sex ph.ecog ph.karno pat.karno meal.cal wt.loss status
+##    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt; 
+##  1     3   306    74     1       1       90       100     1175      NA 2     
+##  2     3   306    74     1       1       90       100     1175      NA 1     
+##  3     3   455    68     1       0       90        90     1225      15 2     
+##  4     3   455    68     1       0       90        90     1225      15 1     
+##  5     3  1010    56     1       0       90        90       NA      15 2     
+##  6     3  1010    56     1       0       90        90       NA      15 1     
+##  7     5   210    57     1       1       90        60     1150      11 2     
+##  8     5   210    57     1       1       90        60     1150      11 1     
+##  9     1   883    60     1       0      100        90       NA       0 2     
+## 10     1   883    60     1       0      100        90       NA       0 1     
+## # … with 446 more rows, and 1 more variable: value &lt;dbl&gt;</code></pre>
+<pre class="r"><code># tidy up the dataset by combining &#39;2&#39; and &#39;1&#39; columns back
+# into one column &#39;status&#39;
+veteran %&gt;% pivot_wider(names_from = &quot;trt&quot;, values_from = &quot;trt&quot;) %&gt;% 
+    # untidy the dataset by breaking by &#39;trt&#39; column into two
+# columns
+pivot_longer(c(&quot;1&quot;, &quot;2&quot;), names_to = &quot;trt&quot;)</code></pre>
+<pre><code>## # A tibble: 274 x 9
+##    celltype  time status karno diagtime   age prior trt   value
+##    &lt;fct&gt;    &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;
+##  1 squamous    72      1    60        7    69     0 1         1
+##  2 squamous    72      1    60        7    69     0 2        NA
+##  3 squamous   411      1    70        5    64    10 1         1
+##  4 squamous   411      1    70        5    64    10 2        NA
+##  5 squamous   228      1    60        3    38     0 1         1
+##  6 squamous   228      1    60        3    38     0 2        NA
+##  7 squamous   126      1    60        9    63    10 1         1
+##  8 squamous   126      1    60        9    63    10 2        NA
+##  9 squamous   118      1    70       11    65    10 1         1
+## 10 squamous   118      1    70       11    65    10 2        NA
+## # … with 264 more rows</code></pre>
+<pre class="r"><code># tidy up the dataset by combining &#39;1&#39; and &#39;2&#39; columns back
+# into one column &#39;trt&#39;
+
+# manipulate cancer dataset to recode status column and add a
+# column indicating the patients are not veteran.
+LungCancer &lt;- cancer %&gt;% mutate(status = recode(status, `2` = &quot;dead&quot;, 
+    `1` = &quot;censored&quot;)) %&gt;% rename(karno = &quot;ph.karno&quot;) %&gt;% mutate(Vet = recode(status, 
+    dead = &quot;No&quot;, censored = &quot;No&quot;))
+
+# manipulate veteran dataset to recode status column and add
+# a column indicating the patients are veterans.
+VeteranLung &lt;- veteran %&gt;% mutate(status = recode(status, `1` = &quot;dead&quot;, 
+    `0` = &quot;censored&quot;)) %&gt;% mutate(Vet = recode(status, dead = &quot;Yes&quot;, 
+    censored = &quot;Yes&quot;))</code></pre>
+<pre class="r"><code>JoinedData &lt;- LungCancer %&gt;% full_join(VeteranLung, by = c(&quot;time&quot;, 
+    &quot;status&quot;, &quot;age&quot;, &quot;karno&quot;, &quot;Vet&quot;))
+JoinedData</code></pre>
+<pre><code>##     inst time   status age sex ph.ecog karno pat.karno meal.cal wt.loss Vet trt
+## 1      3  306     dead  74   1       1    90       100     1175      NA  No  NA
+## 2      3  455     dead  68   1       0    90        90     1225      15  No  NA
+## 3      3 1010 censored  56   1       0    90        90       NA      15  No  NA
+## 4      5  210     dead  57   1       1    90        60     1150      11  No  NA
+## 5      1  883     dead  60   1       0   100        90       NA       0  No  NA
+## 6     12 1022 censored  74   1       1    50        80      513       0  No  NA
+##      celltype diagtime prior
+## 1        &lt;NA&gt;       NA    NA
+## 2        &lt;NA&gt;       NA    NA
+## 3        &lt;NA&gt;       NA    NA
+## 4        &lt;NA&gt;       NA    NA
+## 5        &lt;NA&gt;       NA    NA
+## 6        &lt;NA&gt;       NA    NA
+##  [ reached getOption(&quot;max.print&quot;) -- omitted 359 rows ]</code></pre>
+</div>
+<div id="fulljoined-two-datasets-to-perserves-all-rowslung-cancer-patients-in-both-into-one-big-lung-cancer-dataset.-lungcancer-had-228-rows-veteranlung-had-137-rows-and-the-combined-joineddata-have-228137-365-rows.-so-i-can-compare-and-contrast-the-difference-in-age-survival-time-and-karno-score-between-veteran-and-non-veteran-patient." class="section level5">
+<h5>fulljoined two datasets to perserves all rows/lung cancer patients in both into one big lung cancer dataset. LungCancer had 228 rows, VeteranLung had 137 rows, and the combined JoinedData have 228+137 = 365 rows. so I can compare and contrast the difference in age, survival time and karno score between veteran and non-veteran patient.</h5>
+<pre class="r"><code>TidyJoined &lt;- JoinedData %&gt;% select(time, status, age, karno, 
+    Vet)
+TidyJoined</code></pre>
+<pre><code>##     time   status age karno Vet
+## 1    306     dead  74    90  No
+## 2    455     dead  68    90  No
+## 3   1010 censored  56    90  No
+## 4    210     dead  57    90  No
+## 5    883     dead  60   100  No
+## 6   1022 censored  74    50  No
+## 7    310     dead  68    70  No
+## 8    361     dead  71    60  No
+## 9    218     dead  53    70  No
+## 10   166     dead  61    70  No
+## 11   170     dead  57    80  No
+## 12   654     dead  68    70  No
+## 13   728     dead  68    90  No
+## 14    71     dead  60    60  No
+## 15   567     dead  57    80  No
+## 16   144     dead  67    80  No
+## 17   613     dead  70    90  No
+## 18   707     dead  63    50  No
+## 19    61     dead  56    60  No
+## 20    88     dead  57    90  No
+##  [ reached getOption(&quot;max.print&quot;) -- omitted 345 rows ]</code></pre>
+</div>
+<div id="pick-up-only-columns-shared-by-all-patients-in-the-dataset.-also-these-five-are-the-main-variables-that-i-am-need-to-determine-the-relationship-between-veteran-status-and-various-parameters-that-represent-the-wellbeing-of-the-patient." class="section level5">
+<h5>pick up only columns shared by all patients in the dataset. Also these five are the main variables that I am need to determine the relationship between veteran status and various parameters that represent the wellbeing of the patient.</h5>
+</div>
+<div id="summary-statistics" class="section level3">
+<h3>10 SUMMARY STATISTICS:</h3>
+<pre class="r"><code>Data &lt;- TidyJoined %&gt;% mutate(Age_Group = case_when(age &gt;= 65 ~ 
+    &quot;elder/retired&quot;, 50 &lt;= age &amp; age &lt; 65 ~ &quot;senior work force&quot;, 
+    age &lt; 50 ~ &quot;young work force&quot;))</code></pre>
+<div id="this-created-a-column-that-seperate-the-age-of-the-patient-into-the-working-demographic-groups.-this-will-let-me-know-if-the-patient-is-currently-working-at-their-prime-age-working-while-getting-close-to-retirement-or-retired." class="section level5">
+<h5>this created a column that seperate the age of the patient into the working demographic groups. this will let me know if the patient is currently working at their prime age, working while getting close to retirement, or retired.</h5>
+<pre class="r"><code>Data %&gt;% group_by(Age_Group) %&gt;% summarize(mean_karno = mean(karno, 
+    na.rm = T), sd_karno = sd(karno, na.rm = T), n = n(), se_karno = sd_karno/sqrt(n))</code></pre>
+<pre><code>## # A tibble: 3 x 5
+##   Age_Group         mean_karno sd_karno     n se_karno
+##   &lt;chr&gt;                  &lt;dbl&gt;    &lt;dbl&gt; &lt;int&gt;    &lt;dbl&gt;
+## 1 elder/retired           71.7     18.6   144     1.55
+## 2 senior work force       75.4     19.1   170     1.46
+## 3 young work force        69.6     21.5    51     3.02</code></pre>
+</div>
+<div id="first-off-i-group-the-data-into-the-three-different-working-demographic-groups-and-then-i-calculate-the-average-standard-deviation-and-standard-error-of-karnofsky-performance-score-for-patient-in-each-demographic-group.-the-result-showed-that-young-work-force-and-retired-patient-have-similar-average-of-karno-score-at-70-while-senior-work-force-patient-have-higher-karno-score-at-75.-standard-deviation-of-karno-score-is-very-close-between-all-three-group.-young-work-force-patients-have-significantly-higher-standard-error-in-karno-score-than-retired-and-senior-work-force-patient." class="section level5">
+<h5>first off, I group the data into the three different working demographic groups, and then I calculate the average, standard deviation, and standard error of Karnofsky performance score for patient in each demographic group. the result showed that young work force and retired patient have similar average of Karno score at ~70 while senior work force patient have higher karno score at ~75. standard deviation of karno score is very close between all three group. young work force patients have significantly higher standard error in karno score than retired and senior work force patient.</h5>
+<pre class="r"><code>Data %&gt;% group_by(Vet) %&gt;% summarize(mean_karno = mean(karno, 
+    na.rm = T), sd_karno = sd(karno, na.rm = T), n = n(), se_karno = sd_karno/sqrt(n))</code></pre>
+<pre><code>## # A tibble: 2 x 5
+##   Vet   mean_karno sd_karno     n se_karno
+##   &lt;chr&gt;      &lt;dbl&gt;    &lt;dbl&gt; &lt;int&gt;    &lt;dbl&gt;
+## 1 No          81.9     12.3   228    0.816
+## 2 Yes         58.6     20.0   137    1.71</code></pre>
+</div>
+<div id="now-i-reassess-the-patients-wellbeing-again-using-average-standard-deviation-and-standard-error-of-karnofsky-performance-score-but-this-time-group-the-patient-by-their-millitary-status.-the-result-shows-significant-difference-in-the-mean-sd-and-se-between-veteran-patient-and-non-veteran-patients.-veteran-patients-have-significantly-lower-average-karno-score-with-higher-variation-in-karno-score-across-all-veteran-patientssd-20-comparing-to-12-of-non-veteran-patients.-veteran-patients-have-higher-standard-error-in-their-karno-score-as-well." class="section level5">
+<h5>now I reassess the patients’ wellbeing again using average, standard deviation, and standard error of Karnofsky performance score but this time group the patient by their millitary status. the result shows significant difference in the mean, sd, and se between veteran patient and non-veteran patients. veteran patients have significantly lower average karno score with higher variation in karno score across all veteran patients(sd =20 comparing to 12 of non-veteran patients). veteran patients have higher standard error in their karno score as well.</h5>
+<pre class="r"><code>Data %&gt;% group_by(status, Vet) %&gt;% summarize(count = n())</code></pre>
+<pre><code>## # A tibble: 4 x 3
+## # Groups:   status [2]
+##   status   Vet   count
+##   &lt;chr&gt;    &lt;chr&gt; &lt;int&gt;
+## 1 censored No       63
+## 2 censored Yes       9
+## 3 dead     No      165
+## 4 dead     Yes     128</code></pre>
+</div>
+<div id="this-code-tells-me-the-distribution-of-dead-v.s.-censored-patient-in-veteran-patients-and-non-veteran-patients.-the-ratio-of-dead-to-censored-patients-is-a-lot-lower-in-veteran-patients-9-to-128-than-non-veteran-patients-63-to-165-meaning-lower-survival-rate-in-veteran-patients." class="section level5">
+<h5>this code tells me the distribution of dead v.s. censored patient in veteran patients and non-veteran patients. the ratio of dead to censored patients is a lot lower in veteran patients (9 to 128) than non-veteran patients (63 to 165), meaning lower survival rate in veteran patients.</h5>
+<pre class="r"><code>Data %&gt;% filter(status == &quot;dead&quot;) %&gt;% group_by(Vet) %&gt;% summarize(mean(time))</code></pre>
+<pre><code>## # A tibble: 2 x 2
+##   Vet   `mean(time)`
+##   &lt;chr&gt;        &lt;dbl&gt;
+## 1 No            283 
+## 2 Yes           122.</code></pre>
+</div>
+<div id="in-addition-out-of-all-the-dead-patients-veteran-patient-have-much-lower-average-survival-time-at-122-days-comparing-to-non-veteran-patients-at-283-days." class="section level5">
+<h5>in addition, out of all the dead patients, veteran patient have much lower average survival time at 122 days comparing to non-veteran patients at 283 days.</h5>
+<pre class="r"><code>Data %&gt;% filter(status == &quot;censored&quot;) %&gt;% group_by(Vet) %&gt;% summarize(mean(time))</code></pre>
+<pre><code>## # A tibble: 2 x 2
+##   Vet   `mean(time)`
+##   &lt;chr&gt;        &lt;dbl&gt;
+## 1 No            363.
+## 2 Yes           115.</code></pre>
+</div>
+<div id="on-the-other-hand-out-of-all-censored-patients-non-veteran-patients-have-much-higher-average-survival-time-at-363.5-days-comparing-to-non-veteran-patients-at-114.5-days.-the-survival-days-is-three-times-higher-in-non-veteran-patients" class="section level5">
+<h5>on the other hand, out of all censored patients, non-veteran patients have much higher average survival time at 363.5 days comparing to non-veteran patients at 114.5 days. the survival days is three times higher in non-veteran patients!</h5>
+<pre class="r"><code>Data %&gt;% group_by(Vet) %&gt;% summarize(Avg_age = mean(age))</code></pre>
+<pre><code>## # A tibble: 2 x 2
+##   Vet   Avg_age
+##   &lt;chr&gt;   &lt;dbl&gt;
+## 1 No       62.4
+## 2 Yes      58.3</code></pre>
+</div>
+<div id="this-code-compare-the-average-onset-age-of-lung-cancer-in-veteran-and-non-veteran-patient.-veteran-patients-have-much-lower-onset-age-at-58.3-years-old-comparing-to-the-onset-age-of-62.4-in-non-veteran-patients." class="section level5">
+<h5>this code compare the average onset age of lung cancer in veteran and non-veteran patient. veteran patients have much lower onset age at 58.3 years old comparing to the onset age of 62.4 in non-veteran patients.</h5>
+<pre class="r"><code>Data %&gt;% filter(status == &quot;dead&quot;) %&gt;% select(time, karno, age) %&gt;% 
+    arrange(desc(time))</code></pre>
+<pre><code>##     time karno age
+## 1    999    90  54
+## 2    991    70  50
+## 3    883   100  60
+## 4    814    70  65
+## 5    791   100  59
+## 6    765    90  50
+## 7    735    90  72
+## 8    731    80  64
+## 9    728    90  68
+## 10   707    50  63
+## 11   705   100  51
+## 12   689    90  59
+## 13   687    80  58
+## 14   655   100  63
+## 15   654    70  68
+## 16   643    90  74
+## 17   641    80  62
+## 18   624    70  50
+## 19   613    90  70
+## 20   587    60  58
+## 21   583    60  68
+## 22   574   100  60
+## 23   567    80  57
+## 24   558    90  70
+## 25   553    70  47
+## 26   550    70  69
+## 27   533    60  48
+## 28   524    80  54
+## 29   524    60  68
+## 30   520    90  70
+## 31   519    80  63
+## 32   477    90  64
+## 33   473    90  69
+##  [ reached getOption(&quot;max.print&quot;) -- omitted 260 rows ]</code></pre>
+</div>
+<div id="this-code-list-the-survial-time-of-all-dead-patient-in-desecnding-order-and-pair-them-up-with-their-onset-age-and-karn-score.-the-result-of-this-code-suggest-the-general-patterns-of-patient-with-younger-onset-age-and-higher-karno-score-by-physician-tend-to-survived-longer-with-lung-cancer." class="section level5">
+<h5>this code list the survial time of all dead patient in desecnding order and pair them up with their onset age and karn score. The result of this code suggest the general patterns of patient with younger onset age and higher karno score by physician tend to survived longer with lung cancer.</h5>
+<pre class="r"><code>Data %&gt;% select_if(is.numeric) %&gt;% na.omit %&gt;% cor</code></pre>
+<pre><code>##             time         age       karno
+## time  1.00000000 0.020939048 0.410329335
+## age   0.02093905 1.000000000 0.005707318
+## karno 0.41032933 0.005707318 1.000000000</code></pre>
+</div>
+<div id="correlation-matrix-of-all-three-of-my-numeric-variables.-it-seems-that-physicians-karno-score-on-patient-is-the-parameter-thats-most-poitively-correlated-with-the-patients-survival-time-r-0.41-meaning-that-higher-karno-score-mostly-like-correspond-to-higher-survival-time.-the-survivial-time-of-patient-is-not-very-correlated-to-their-onset-age-r0.02-so-younger-onset-age-most-likely-doesnt-mean-the-patients-will-survive-longer.-correlation-between-onset-age-and-karno-score-is-the-weakest-of-all-r0.006.-suggesting-karnofsky-performance-score-rated-by-physician-is-most-likely-independent-of-the-onset-age-of-the-patients-and-reflect-only-on-the-wellbeing-of-the-patient." class="section level5">
+<h5>correlation matrix of all three of my numeric variables. it seems that physicians’ karno score on patient is the parameter that’s most poitively correlated with the patients survival time (r= 0.41), meaning that higher karno score mostly like correspond to higher survival time. The survivial time of patient is not very correlated to their onset age (r=0.02), so younger onset age most likely doesn’t mean the patients will survive longer. correlation between onset age and Karno score is the weakest of all (r=0.006). Suggesting Karnofsky performance score rated by physician is most likely independent of the onset age of the patients and reflect only on the wellbeing of the patient.</h5>
+</div>
+</div>
+<div id="correlation-heat-map-and-two-graphs" class="section level3">
+<h3>CORRELATION HEAT MAP AND TWO GRAPHS:</h3>
+<pre class="r"><code>CorHeat &lt;- Data %&gt;% select_if(is.numeric) %&gt;% na.omit %&gt;% cor() %&gt;% 
+    as.data.frame %&gt;% rownames_to_column %&gt;% pivot_longer(-1, 
+    names_to = &quot;name&quot;, values_to = &quot;correlation&quot;)
+CorHeat</code></pre>
+<pre><code>## # A tibble: 9 x 3
+##   rowname name  correlation
+##   &lt;chr&gt;   &lt;chr&gt;       &lt;dbl&gt;
+## 1 time    time      1      
+## 2 time    age       0.0209 
+## 3 time    karno     0.410  
+## 4 age     time      0.0209 
+## 5 age     age       1      
+## 6 age     karno     0.00571
+## 7 karno   time      0.410  
+## 8 karno   age       0.00571
+## 9 karno   karno     1</code></pre>
+<pre class="r"><code>CorHeat %&gt;% ggplot(aes(rowname, name, fill = correlation)) + 
+    geom_tile() + scale_fill_gradient2(low = &quot;grey&quot;, mid = &quot;white&quot;, 
+    high = &quot;purple&quot;) + geom_text(aes(label = round(correlation, 
+    2)), color = &quot;black&quot;, size = 4) + theme(axis.text.x = element_text(angle = 90, 
+    hjust = 1)) + coord_fixed()</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(Data, aes(age, time)) + geom_point(size = 2, aes(color = karno)) + 
+    scale_color_gradient(low = &quot;yellow&quot;, high = &quot;purple&quot;) + scale_x_log10() + 
+    scale_y_log10() + ggtitle(&quot;Lung cancer patients&#39; survival time with respect to their age and Karnofsky score&quot;) + 
+    ylab(&quot;Time (log10(days))&quot;) + xlab(&quot;Age (log10(years))&quot;)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-15-1.png" width="672" style="display: block; margin: auto;" /> #####this scatter plot shows that patients with higher physician rated karno score(dark purple dots, representing karno score from 75 and above) survive for a longer time than other patient regardless of their cancer onset age. patients with medium physician rated karno score(light purple dots and all kinds of yellow-ish dots, representing karno score below 75) has a pretty positive correlation between onset age and survival time. patient with older cancer onset age usually survive longer times.</p>
+<pre class="r"><code>Data %&gt;% ggplot(aes(x = Age_Group, y = time, fill = Vet)) + geom_bar(position = &quot;dodge&quot;, 
+    stat = &quot;summary&quot;, fun.y = &quot;mean&quot;) + geom_errorbar(position = &quot;dodge&quot;, 
+    stat = &quot;summary&quot;) + ggtitle(&quot;Average lung cancer survival time based on the age groups and vetern status&quot;) + 
+    ylab(&quot;Time (days)&quot;) + xlab(&quot;Demographic age group&quot;)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-16-1.png" width="672" style="display: block; margin: auto;" /> #####this bar graph shows that out of all three working demographic age groups, veteran patients always have a much lower survial times comparing to the non-veteran patients. as we can observed that the green bars(veteran) is much lower than the orange bars(non-veteran) in survival time across all three groups.</p>
+</div>
+<div id="cluster-analysis" class="section level3">
+<h3>CLUSTER ANALYSIS:</h3>
+<pre class="r"><code>silh_width &lt;- vector()
+for (i in 1:10) {
+    pam_fit &lt;- Data %&gt;% select_if(is.numeric) %&gt;% pam(i)
+    silh_width[i] &lt;- pam_fit$silinfo$avg.width
+}
+ggplot() + geom_line(aes(x = 1:10, y = silh_width)) + scale_x_continuous(name = &quot;k&quot;, 
+    breaks = 1:10)</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-17-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pam1 &lt;- Data %&gt;% select_if(is.numeric) %&gt;% pam(2)
+pam1$silinfo$avg.width</code></pre>
+<pre><code>## [1] 0.5772119</code></pre>
+<div id="base-on-the-average-silhouette-width-it-is-best-to-cluster-this-data-into-two-clusters.-the-score-of-the-average-silhouette-width-is-0.577-for-two-clusters-which-represent-a-reasonable-structure-for-cluster-has-been-found-for-this-data." class="section level5">
+<h5>base on the average silhouette width, it is best to cluster this data into two clusters. the score of the average silhouette width is 0.577 for two clusters, which represent a reasonable structure for cluster has been found for this data.</h5>
+<pre class="r"><code>clust_data &lt;- Data %&gt;% select_if(is.numeric)
+pam &lt;- clust_data %&gt;% pam(k = 2)
+
+pamclust &lt;- clust_data %&gt;% mutate(cluster = as.factor(pam$clustering))
+
+pamclust %&gt;% ggplot(aes(time, age, color = cluster)) + geom_point()</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>pamclust %&gt;% group_by(cluster) %&gt;% summarize_if(is.numeric, mean, 
+    na.rm = T)</code></pre>
+<pre><code>## # A tibble: 2 x 4
+##   cluster  time   age karno
+##   &lt;fct&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 1        458.  61.4  82.9
+## 2 2        109.  60.6  67.5</code></pre>
+<pre class="r"><code># this line shows the average of all three variable in the
+# two clusters
+
+Data %&gt;% ggplot(aes(time, age, color = Vet)) + geom_point()</code></pre>
+<p><img src="/project1_files/figure-html/unnamed-chunk-18-2.png" width="672" style="display: block; margin: auto;" /> #####comparing the cluster plot with the scatter plot colored by veteran, it seems like two clusters capture the difference in survival time and onset age between veteran and non-veteran lung cancer patients fairly well. all of the blue dots in clustered plot are near the left side of the graph, suggesting shorter survival time for the blue dots. when compared this to the scatter plot color by veteran, I can see that most of the veteran patients (blue dots) is mostly gathered toward the left side of the graph, representing shorter survival time. this result corresond fairly well to the clustering analysis graph of two clusters.</p>
+</div>
+</div>
+</div>

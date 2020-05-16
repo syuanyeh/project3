@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Portfolio</title>
+    <link>/</link>
+    <description>Recent content on Portfolio</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language>
+    <lastBuildDate>Sun, 02 Oct 2016 22:55:05 -0400</lastBuildDate>
+    
+	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Using R and Python together for statistic tests</title>
+      <link>/blog/migrate-from-jekyll/</link>
+      <pubDate>Thu, 14 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/migrate-from-jekyll/</guid>
+      <description>randomization test! although I have only come to know python this semester, I have already found some convient way to incorporate python codes into my lab data analysis. I have always stick to R studio for data analysis, yet the fast and more straight input of python code for certain statistical test is just too temping for a lazy person like me. For instance, In my attempt to analyze my collected swordfish mating behaviors data in the lab, I ran a randomization test on my data as my data failed the ANOVA assumptions.</description>
+    </item>
+    
+    <item>
+      <title>Projects</title>
+      <link>/projects/</link>
+      <pubDate>Sun, 02 Oct 2016 22:55:05 -0400</pubDate>
+      
+      <guid>/projects/</guid>
+      <description>Projects Here are some projects I have recently completed:
+  Exploratory Data Analysis with Tidyverse Tools
+  Modeling, Testing, and Classification
+  </description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>/project1/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project1/</guid>
+      <description>#Name: Yu Syuan Yeh, eID: yy7768 output: pdf_document: default html_document: default —
+library(dplyr) library(ggplot2) library(survival) library(tidyverse) library(cluster) # the two datasets I used for this project `?`(cancer) `?`(veteran) Both cancer and veteran are datasets built in R. “cancer” contains the survival data of lung cancer paitents from the North Central Cancer Treatment Group. The dataset contains patients’ institutional code(inst); how long they survived in days(time); censoring status of the patients(status); age of patient(age); sex of patient(sex); ECOG performance score (ph.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>/project2/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project2/</guid>
+      <description>#Name: Yu Syuan Yeh, eID: yy7768 output: pdf_document: default html_document: default —
+part 0 library(dplyr) library(ggplot2) library(tidyverse) library(boot) # the datasets I used for this project melanoma &amp;lt;- melanoma explaination of my data set
+data set “melanoma” followed 205 malignant melanoma patients from 1962 to 1977. each patient had the tumour surgically removed at Department of Plastic Surgery, University Hospital of Odense, Denmark. variale “time” shows the time each patient survived after the surgery until the end of 1977; “status” variable display the status result of patient at the end of 1977: “1” represent the patient died by melanoma, “2” represent the patient survived, and “3” indicate the patient died from causes unrelated to melanoma; “sex” variable shows patient sex: “1” = male and “0” = female; “age” variable indicate the age of the patient when they took the surgery; “year” represent the year the surgery happened; “thickness” variable measure the thinkness of tumor in mm; “ulcer” variable indicate if the the tumor is ulcerated or not: “1” = ulcered and “0” = not ulcered.</description>
+    </item>
+    
+  </channel>
+</rss>

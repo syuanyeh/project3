@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blogs on Portfolio</title>
+    <link>/blog/</link>
+    <description>Recent content in Blogs on Portfolio</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language>
+    <lastBuildDate>Thu, 14 May 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Using R and Python together for statistic tests</title>
+      <link>/blog/migrate-from-jekyll/</link>
+      <pubDate>Thu, 14 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/migrate-from-jekyll/</guid>
+      <description>randomization test! although I have only come to know python this semester, I have already found some convient way to incorporate python codes into my lab data analysis. I have always stick to R studio for data analysis, yet the fast and more straight input of python code for certain statistical test is just too temping for a lazy person like me. For instance, In my attempt to analyze my collected swordfish mating behaviors data in the lab, I ran a randomization test on my data as my data failed the ANOVA assumptions.</description>
+    </item>
+    
+  </channel>
+</rss>

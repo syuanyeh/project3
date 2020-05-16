@@ -1,0 +1,193 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+#Name: Yu Syuan Yeh, eID: yy7768
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.align = "center", warning = F, message = F,
+tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
+```
+
+```{r}
+library(dplyr) 
+library(ggplot2)
+library(survival)
+library(tidyverse)
+library(cluster)
+#the two datasets I used for this project
+?cancer
+?veteran
+```
+#####Both cancer and veteran are datasets built in R. "cancer" contains the survival data of lung cancer paitents from the North Central Cancer Treatment Group. The dataset contains patients' institutional code(inst); how long they survived in days(time); censoring status of the patients(status); age of patient(age); sex of patient(sex); ECOG performance score (ph.ecog); Karnofsky performance score rated by physician (ph.karno); Karnofsky performance score rated by patient (pat.karno); calories consumed at meals(meal.cal); and weight loss in last six months(wt.loss). "veteran" contains the survival data of strictly veteran lung cancer patients from the book 'The Statistical Analysis of Failure Time Data'. The dataset contains which of the two treatment regimens the patient receive (trt); cancer cell type (celltype); how long they survived in days(time); censoring status of the patients(status); Karnofsky performance score rated by physician (karno); months from diagnosis to randomisation(diagtime);age of patient(age); and whether the patients received prior therapy or not(prior). The reason why I found these two dat interesting is I am really curious to see if the military experience of the patients has any effect on their survival rate on lung cancer.Moreover, these two datasets happen to have 4 common variables that allows me to test multiple varibles' interaction on the suvivalship of patient. I hypothesized that higher age will correlate to shorter time survive, higher Karnofsky performance score will correlate to longer survival time, and being a veteran will have younger cancer onset age with longer survial rate.
+```{R}
+# untidy my datasets then tidy it up
+cancer%>%
+  pivot_wider(names_from="status", values_from = "status")%>% 
+#untidy the dataset by breaking by "status" column into two columns
+  pivot_longer(c("2","1"), names_to="status") 
+#tidy up the dataset by combining "2" and "1" columns back into one column "status"
+veteran%>%
+  pivot_wider(names_from="trt", values_from = "trt")%>% 
+#untidy the dataset by breaking by "trt" column into two columns
+  pivot_longer(c("1","2"), names_to="trt")  
+#tidy up the dataset by combining "1" and "2" columns back into one column "trt"
+
+#manipulate cancer dataset to recode status column
+#and add a column indicating the patients are not veteran.
+LungCancer <- cancer %>% 
+  mutate(status = recode(status, "2"="dead", "1"="censored")) %>% 
+  rename("karno" = "ph.karno") %>% 
+  mutate(Vet = recode(status, "dead"="No", "censored"="No"))
+
+#manipulate veteran dataset to recode status column
+#and add a column indicating the patients are veterans.
+VeteranLung <- veteran %>%  
+  mutate(status = recode(status, "1"="dead", "0"="censored")) %>% 
+  mutate(Vet = recode(status, "dead"="Yes", "censored"="Yes"))
+
+```
+
+```{r}
+JoinedData <- LungCancer %>% 
+  full_join(VeteranLung, by = c("time", "status", "age", "karno", "Vet"))
+JoinedData
+```
+#####fulljoined two datasets to perserves all rows/lung cancer patients in both  into one big lung cancer dataset. LungCancer had 228 rows, VeteranLung had 137 rows, and the combined JoinedData have 228+137 = 365 rows. so I can compare and contrast the difference in age, survival time and karno score between veteran and non-veteran patient. 
+```{r}
+TidyJoined <- JoinedData %>% 
+  select(time,status,age,karno,Vet)
+TidyJoined
+```
+#####pick up only columns shared by all patients in the dataset. Also these five are the main variables that I am need to determine the relationship between veteran status and various parameters that represent the wellbeing of the patient.
+
+
+### 10 SUMMARY STATISTICS:
+```{r}
+Data <- TidyJoined %>% 
+  mutate(Age_Group = case_when(age>=65 ~ "elder/retired",
+                               50<=age & age<65  ~ "senior work force", 
+                               age<50 ~ "young work force"))
+```
+#####this created a column that seperate the age of the patient into the working demographic groups. this will let me know if the patient is currently working at their prime age, working while getting close to retirement, or retired.
+```{r}
+Data %>% group_by(Age_Group)%>%
+  summarize(mean_karno=mean(karno, na.rm=T), 
+sd_karno=sd(karno, na.rm=T), n=n(),
+se_karno=sd_karno/sqrt(n))
+```
+#####first off, I group the data into the three different working demographic groups, and then I calculate the average, standard deviation, and standard error of Karnofsky performance score for patient in each demographic group. the result showed that young work force and retired patient have similar average of Karno score at ~70 while senior work force patient have higher karno score at ~75. standard deviation of karno score is very close between all three group. young work force patients have significantly higher standard error in karno score than retired and senior work force patient.
+```{r}
+Data %>% group_by(Vet) %>% summarize(mean_karno=mean(karno, na.rm=T),
+sd_karno=sd(karno, na.rm=T), n=n(),
+se_karno=sd_karno/sqrt(n))
+```
+#####now I reassess the patients' wellbeing again using average, standard deviation, and standard error of Karnofsky performance score but this time group the patient by their millitary status. the result shows significant difference in the mean, sd, and se between veteran patient and non-veteran patients. veteran patients have significantly lower average karno score with higher variation in karno score across all veteran patients(sd =20 comparing to 12 of non-veteran patients). veteran patients have higher standard error in their karno score as well.
+```{r}
+Data %>% group_by(status, Vet) %>% summarize(count=n())
+```
+#####this code tells me the distribution of dead v.s. censored patient in veteran patients and non-veteran patients. the ratio of dead to censored patients is a lot lower in veteran patients (9 to 128) than non-veteran patients (63 to 165), meaning lower survival rate in veteran patients.
+```{r}
+Data %>% filter(status == "dead") %>% group_by(Vet) %>% summarize(mean(time))
+```
+#####in addition, out of all the dead patients, veteran patient have much lower average survival time at 122 days comparing to non-veteran patients at 283 days.
+```{r}
+Data %>% filter(status == "censored") %>% group_by(Vet) %>% summarize(mean(time))
+```
+#####on the other hand, out of all censored patients, non-veteran patients have much higher average survival time at 363.5 days comparing to non-veteran patients at 114.5 days. the survival days is three times higher in non-veteran patients!
+```{r}
+Data %>% group_by(Vet)%>% summarize(Avg_age = mean(age))
+```
+#####this code compare the average onset age of lung cancer in veteran and non-veteran patient. veteran patients have much lower onset age at 58.3 years old comparing to the onset age of 62.4 in non-veteran patients.
+```{r}
+Data %>% filter(status == "dead") %>% select(time, karno, age) %>% arrange(desc(time))
+```
+#####this code list the survial time of all dead patient in desecnding order and pair them up with their onset age and karn score. The result of this code suggest the general patterns of patient with younger onset age and higher karno score by physician tend to survived longer with lung cancer.
+```{r}
+Data%>%select_if(is.numeric)%>%na.omit%>%cor
+```
+#####correlation matrix of all three of my numeric variables. it seems that physicians' karno score on patient is the parameter that's most poitively correlated with the patients survival time (r= 0.41), meaning that higher karno score mostly like correspond to higher survival time. The survivial time of patient is not very correlated to their onset age (r=0.02), so younger onset age most likely doesn't mean the patients will survive longer. correlation between onset age and Karno score is the weakest of all (r=0.006). Suggesting Karnofsky performance score rated by physician is most likely independent of the onset age of the patients and reflect only on the wellbeing of the patient.
+
+
+###CORRELATION HEAT MAP AND TWO GRAPHS:
+```{r}
+CorHeat <- Data %>% 
+  select_if(is.numeric)%>%
+  na.omit%>% cor()%>%
+  as.data.frame%>%
+  rownames_to_column%>%
+  pivot_longer(-1,names_to="name",values_to="correlation")
+CorHeat
+CorHeat%>%
+  ggplot(aes(rowname,name,fill=correlation))+
+  geom_tile()+
+  scale_fill_gradient2(low="grey",mid="white",high="purple")+
+  geom_text(aes(label=round(correlation,2)),color = "black", size = 4)+ 
+  theme(axis.text.x = element_text(angle = 90, hjust=1))+
+  coord_fixed()
+```
+
+```{r}
+ggplot(Data, aes(age,time))+
+  geom_point(size=2,aes(color=karno))+
+  scale_color_gradient(low="yellow", high="purple")+
+  scale_x_log10()+
+  scale_y_log10()+
+  ggtitle("Lung cancer patients' survival time with respect to their age and Karnofsky score")+
+  ylab("Time (log10(days))")+
+  xlab("Age (log10(years))")
+```
+#####this scatter plot shows that patients with higher physician rated karno score(dark purple dots, representing karno score from 75 and above) survive for a longer time than other patient regardless of their cancer onset age. patients with medium physician rated karno score(light purple dots and all kinds of yellow-ish dots, representing karno score below 75) has a pretty positive correlation between onset age and survival time. patient with older cancer onset age usually survive longer times.
+```{r}
+Data %>% ggplot(aes(x=Age_Group,y=time, fill=Vet))+
+  geom_bar(position="dodge", stat="summary", fun.y="mean")+
+  geom_errorbar(position="dodge", stat="summary")+
+  ggtitle("Average lung cancer survival time based on the age groups and vetern status")+
+  ylab("Time (days)")+
+  xlab("Demographic age group")
+```
+#####this bar graph shows that out of all three working demographic age groups, veteran patients always have a much lower survial times comparing to the non-veteran patients. as we can observed that the green bars(veteran) is much lower than the orange bars(non-veteran) in survival time across all three groups.
+
+
+###CLUSTER ANALYSIS:
+```{r}
+silh_width<-vector()
+for(i in 1:10){
+pam_fit <- Data%>%select_if(is.numeric)%>%pam(i)
+silh_width[i] <- pam_fit$silinfo$avg.width
+}
+ggplot()+
+  geom_line(aes(x=1:10,y=silh_width))+
+  scale_x_continuous(name="k",breaks=1:10)
+
+pam1<-Data%>%select_if(is.numeric)%>%pam(2)
+pam1$silinfo$avg.width
+```
+#####base on the average silhouette width, it is best to cluster this data into two clusters. the score of the average silhouette width is 0.577 for two clusters, which represent a reasonable structure for cluster has been found for this data.
+
+```{r}
+clust_data <- Data %>% select_if(is.numeric)
+pam <- clust_data %>% pam(k=2)
+
+pamclust<-clust_data %>% 
+  mutate(cluster=as.factor(pam$clustering))
+
+pamclust %>% ggplot(aes(time,age, color=cluster)) + 
+  geom_point()
+
+pamclust %>% group_by(cluster) %>% 
+  summarize_if(is.numeric,mean,na.rm=T)
+#this line shows the average of all three variable in the two clusters
+
+Data%>%
+ggplot(aes(time,age, color=Vet)) + 
+  geom_point()
+```
+#####comparing the cluster plot with the scatter plot colored by veteran, it seems like two clusters capture the difference in survival time and onset age between veteran and non-veteran lung cancer patients fairly well. all of the blue dots in clustered plot are near the left side of the graph, suggesting shorter survival time for the blue dots. when compared this to the scatter plot color by veteran, I can see that most of the veteran patients (blue dots) is mostly gathered toward the left side of the graph, representing shorter survival time. this result corresond fairly well to the clustering analysis graph of two clusters.
+
+

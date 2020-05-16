@@ -1,0 +1,308 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+#Name: Yu Syuan Yeh, eID: yy7768
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r global_options, include=FALSE}
+library(knitr)
+opts_chunk$set(fig.align="center", fig.height=5, message=FALSE, warning=FALSE, fig.width=8, tidy.opts=list(width.cutoff=60),tidy=TRUE)
+
+class_diag<-function(probs,truth){
+  
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}
+```
+
+#####part 0
+```{r}
+library(dplyr) 
+library(ggplot2)
+library(tidyverse)
+library(boot)
+#the datasets I used for this project
+melanoma <- melanoma
+```
+*explaination of my data set*
+
+data set "melanoma" followed 205 malignant melanoma patients from 1962 to 1977. each patient had the tumour surgically removed at Department of Plastic Surgery, University Hospital of Odense, Denmark. variale "time" shows the time each patient survived after the surgery until the end of 1977; "status" variable display the status result of patient at the end of 1977: "1" represent the patient died by melanoma, "2" represent the patient survived, and "3" indicate the patient died from causes unrelated to melanoma; "sex" variable shows patient sex: "1" = male and "0" = female; "age" variable indicate the age of the patient when they took the surgery; "year" represent the year the surgery happened; "thickness" variable measure the thinkness of tumor in mm; "ulcer" variable indicate if the the tumor is ulcerated or not: "1" = ulcered and "0" = not ulcered. 
+
+#####part 1
+```{r}
+#recode status variable for easier look
+manovaDf <- melanoma %>%  
+  mutate(status = recode(status,"1"="died by melanoma", "2"="survived", "3"="other causes death"))
+head(manovaDf)
+#assumptions of multivariate normality
+ggplot(manovaDf, aes(x = age, y = thickness)) +
+geom_point(alpha = .5) + geom_density_2d(h=2) + coord_fixed() + facet_wrap(~status)
+
+#MANOVA
+man<-manova(cbind(age,thickness)~status, data=manovaDf)
+summary(man)
+#follow-up one-way ANOVAs
+summary.aov(man)
+#average age and average tumor thickness of each group in status
+manovaDf %>% group_by(status) %>% summarize(mean(age),mean(thickness))
+#post-hoc t test
+pairwise.t.test(manovaDf$age,manovaDf$status, p.adj="none")
+pairwise.t.test(manovaDf$thickness,manovaDf$status, p.adj="none")
+#type I error and Bonferroni correction
+1-0.95^9
+0.05/9
+```
+*interpretations and answer*
+
+I did 1 MANOVA, follow by 2 ANOVA, then 6 t test. so a totaly of 9 statistical tests.so the probability of at least 1 type I error in my tests = 1 - .95^9 = 0.3698 -> there's a 36.98% chance for type I error if I kept my alpha value at 0.05. Therefore, the adjusted significance level, to keep the type I error at 5%, = 0.005555556. The assumptions for MANOVA are most likely not met. first and foremost, Multivariate normality graph does not look normal at all. 
+
+Conclusion after adjusting for Bonferroni correction (bonferroni alpha value = .05/9 = .0056): 
+Significant differences were found between the three groups of patients with different outcome for at least one of the dependent variables (Pillai trace = 0.145, approximate F = 7.8965, p < 0.0001)
+the result of follow-up univariate ANOVAs shows operational age and tumor thickness are still significantly different amoung three status groups (ANOVA for age:F = 6.6498, P =  0.001596; ANOVA ofr tumor thickness: F= 11.337, P<0.00001)
+Next, post-hoc pair wise t test was done to see which patient status group differ in operation age and tumor thickness. there is no significant difference in the operational age between patients that died by melanoma verses patients died by unrelated causes (P = 0.03637). there is also no significant surgery-taken age difference between patients died by melanoma and patients survied (P = 0.04910). significant difference in operation age was found between patients died by unrelated causes and patients that survived (P = 0.00096). when compare about the tumor thickness, patients died by melanoma have significant difference in tumor thickness when comparing to paitient that survived (P =  6.4e-06). there is no significant difference in tumor thickness when it comes to comparison between patient died by melanoma and patient died by other causes (P = 0.481), and there's also no significant differrence between patient that survived and patient that died by other causes (P = 0.064).
+
+#####part 2
+```{r}
+#randomization test
+#null hypothesis: the mean tumor thickness is the same for ulcerated tumor vs not ulcerated tumor
+#alternative hypothesis:the mean tumor thickness is different for ulcerated and not ulcerated tumor
+#recode ulcer variable for easier look
+RandoTest <- melanoma %>%  
+  mutate(ulcer = recode(ulcer,"1"="ulcerated tumor", "0"="not ulcerated tumors"))
+head(RandoTest)
+# null distribution of the data
+ggplot(RandoTest,aes(x=thickness,fill=ulcer))+geom_histogram(bins=6.5)+facet_wrap(~ulcer,ncol=2)+theme(legend.position="none")
+# actual mean difference between two group
+RandoTest%>%group_by(ulcer)%>%summarize(avg=mean(thickness))%>%summarize(diff(avg))
+# randomization test
+rand_dist<-vector()
+for(i in 1:5000){
+new<-data.frame(thickness=sample(RandoTest$thickness),ulcer=RandoTest$ulcer)
+rand_dist[i]<-mean(new[new$ulcer=="ulcerated tumor",]$thickness)-
+mean(new[new$ulcer=="not ulcerated tumors",]$thickness)}
+{hist(rand_dist,main="",ylab=""); abline(v = 2.525029,col="red")}
+mean(rand_dist> 2.525029 | rand_dist< -2.525029)
+# compare to actual t test
+t.test(data=RandoTest,thickness~ulcer)
+```
+*interpretations and answer*
+
+the true mean difference of tumor thickness between ulcerated tumor and not ulcerated tumor is 2.525 mm. After 5000 random permutations randomization test, we can see that the probability of seeing 2.525 mm as mean difference in the randomization distribution is  basically 0 (the cuf off red line is off the frame of the randomization distribution histogram and 0 percent of our randomization result are more extremem than +/- 2.525). when I double checked by running independent t test on the same variable, the p value is extremely small (p = 2.042e-09), which agree with our p value from the randomization test. therefore, I rejected the null hypothesis and conclude that there is a significant difference in tumor thickness between ulcerated tumors and not ulcerated tumors.
+
+#####part 3
+```{r}
+#recode ulcer for easier look
+lmdata <- melanoma %>%  
+  mutate(ulcer = recode(ulcer,"1"="ulceratedYes", "0"="ulceratedNo"))
+head(lmdata)
+# center age and thickness variables
+lmdata$age_c <- lmdata$age - mean(lmdata$age)
+lmdata$thickness_c <- lmdata$thickness - mean(lmdata$thickness)
+# linear regression model
+fit<-lm(time ~ thickness_c * age_c, data=lmdata)
+summary(fit)
+# regression plot
+new1<-lmdata
+new1$age_c<-mean(lmdata$age_c)
+new1$mean<-predict(fit,new1)
+new1$age_c<-mean(lmdata$age_c)+sd(lmdata$age_c)
+new1$plus.sd<-predict(fit,new1)
+new1$age_c<-mean(lmdata$age_c)-sd(lmdata$age_c)
+new1$minus.sd<-predict(fit,new1)
+newint<-new1%>%select(time,thickness_c,mean,plus.sd,minus.sd)%>%gather(age,value,-time,-thickness_c)
+ggplot(lmdata,aes(thickness_c,time))+
+  geom_point()+
+  geom_line(data=new1,aes(y=mean,color="mean"))+
+  geom_line(data=new1,aes(y=plus.sd,color="+1 sd"))+
+  geom_line(data=new1,aes(y=minus.sd,color="-1 sd"))+
+  labs(color="age (cont)")+theme(legend.position=c(.9,.2))
+
+# check assumptions for linear regression
+resids<-fit$residuals; fitvals<-fit$fitted.values
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, col="red")
+library(sandwich); library(lmtest)
+bptest(fit)
+#there seems to be some fanning pattern, which means homoskedasticity is probably not met for my data. 
+#so I ran the Breusch-Pagan test to formally assesses homoskedasticity 
+#test yield a significant result (P = 8.175e-05), which means my data is not homoskedastic.
+ggplot()+geom_histogram(aes(resids),bins=20)
+ggplot()+geom_qq(aes(sample=resids))+geom_qq_line(aes(sample=resids), color='red')
+# both the qq plot and histogram of residuals seems pretty good. so the normality of my data is met
+
+# recompute regression results with robust standard errors
+coeftest(fit, vcov=vcovHC(fit))
+
+```
+*my interpretation and answers*
+
+Full model for centered operational age X centered tumor thickness for survival time:
+survival time = 2171.8721 - 55.8155(thickness_c) - 17.5056(age_c) - 1.8282(thickness_c:age_c)
+
+-coefficient for Intercept: For patients with average tumor thickness and average surgery taken age, the survival time after surgery is 2171.87 days.
+
+-coefficient for 'thickness_c': For patients with average surgery taken age, every 1 mm increase in tumor thickness decrease the survival time of the patient by 55.82 days after the surgery on average.
+
+-coefficient for 'age_c': For patients with average tumor thickness, every 1 year of delay in the surgery taken age decrease the survival time of the patient by 17.5056 days after the surgery on average.
+
+-coefficient for 'thickness_c:age_c': controlling for the operational age of the patient, every 1 mm increase in tumor thickness further decrease the slope of thinckness on survival time by 1.8282 days.
+
+After I recompute my regression results with robust standard errors, the thickness of the tumor is no longer a significant predictors on the survival time of the patients after the surgery (before robust se, P value for thickness_c is 0.044255; after robust se, P value for thickness_c is 0.1128500). the operational age of the patient remains signifcant after the roboust standard errors. the interaction between the two varaibles was not significant in both test. all coefficient have larger standard error after the robust standard error test. this make sense because my data was not homoskedastic and the corrected SEs robust to violations of homoskedasticity.
+The Adjusted R-squared of my model is  0.1147, so proportion of the variation my model explained is 11.47%.
+
+#####part 4
+```{r}
+# bootstrapped standard errors
+samp_distn<-replicate(5000, {
+boot_dat <- sample_frac(lmdata, replace=T) 
+fit1 <- lm(time ~ thickness_c * age_c, data=boot_dat) 
+coef(fit1) 
+})
+
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd)
+samp_distn %>% t %>% as.data.frame %>% gather %>% group_by(key) %>%
+summarize(lower=quantile(value,.025), upper=quantile(value,.975))
+#the 95% CI of thickness_c and thickness_c*age_c both contains 0, which means they are not significant 
+#in predicting the survival time of the patients. 
+#This result agree with the result of robust SEs in the pervious analysis.
+```
+*my interpretation and answers*
+
+comparisons of standard errors between original SEs, robust SEs, and bootstrapped SEs:
+the original SEs have the smallest standard errors in all four coefficients. Since the data is heteroskedastic, the standard errors in robust SEs is penalized and more conserved (larger than original SEs.) but since the data is pretty normal with a pretty big sample size, bootstrapped SEs didn't change the standard errors much when compares to the result of robust SEs. so both test yield very similar standard errors across all coefficients
+
+comparison of p value between original SEs, robust SEs, and bootstrapped SEs:
+both the thickness of tumor and the age of operation are significant under the original SEs. however, the result changes when I used robust SEs and bootstrapped SEs on my data. both  robust SEs and bootstrapped SEs yield significant result for the operational age of the patients. the tumor thickness is not a significant predictor od survival time under robust SEs and bootstrapped SEs. 
+
+#####part 5
+```{r}
+# centered the thickness variable and recode status for easier look
+glmdata <- melanoma %>%  
+  mutate(status = recode(status,"1"="died by melanoma", "2"="survived", "3"="other causes death"))
+
+glmdata$thickness_c <- glmdata$thickness - mean(glmdata$thickness)
+head(glmdata)
+
+#logistic regression
+fit2 <- glm(ulcer ~ status + thickness_c, data = glmdata, family = "binomial")
+summary(fit2)
+exp(coef(fit2))
+
+#confusion matrix
+prob<-predict(fit2,type="response")
+table(prediction=as.numeric(prob>.5), glmdata$ulcer)%>%addmargins
+
+#  Accuracy, Sensitivity (TPR), Specificity (TNR), and Recall (PPV) of the model 
+class_diag(prob,glmdata$ulcer)
+
+# density of log-odds by the ulceration
+plotData <- melanoma %>%  
+  mutate(ulcer = recode(ulcer,"1"="ulceratedYes", "0"="ulceratedNo"))
+plotData$logit<-predict(fit2) 
+plotData$ulcer<-factor(plotData$ulcer, levels=c("ulceratedYes","ulceratedNo"))
+ggplot(plotData,aes(logit, fill=ulcer))+geom_density(alpha=.3)+
+  geom_vline(xintercept=0,lty=2)
+
+# ROC curve and AUC
+library(plotROC)
+glmdataROC <-glmdata%>%mutate(prob=predict(fit2, type="response"), prediction=ifelse(prob>.5,1,0))
+classify<-glmdataROC%>%transmute(prob,prediction,truth=ulcer)
+head(classify)
+ROCplot<-ggplot(classify)+geom_roc(aes(d=truth,m=prob), n.cuts=0)
+ROCplot
+calc_auc(ROCplot)
+
+# 10 folds cross validation
+k=10
+data <- glmdata %>% sample_frac 
+folds <- ntile(1:nrow(data),n=10) 
+diags<-NULL
+for(i in 1:k){
+train <- data[folds!=i,] 
+test <- data[folds==i,] 
+truth <- test$ulcer 
+fit3 <- glm(ulcer ~ status + thickness_c, data=train, family="binomial")
+prob3 <- predict(fit3, newdata = test, type="response")
+diags<-rbind(diags,class_diag(prob3,truth))
+}
+summarize_all(diags,mean)
+
+```
+*interpretations and answer*
+
+logistic regression model:
+odds = 2.0854795 x 0.4056143^other causes death x  0.2718238^survived x 1.4692510 ^thickness_c
+
+-coefficient for Intercept: odds of having a ulcerated tumor for a patient with average tumor thickness and died by melanoma by the end of the study is 2.0854795
+
+-coefficient for status_other causes death: controlling for the thickness of the tumor, the odds of having a ulcerated tumor for a patient that died by melanoma unrelated causes by the end of the study is  0.4056143 times odds of patient died by melanoma
+
+-coefficient for status_survived: controlling for the thickness of the tumor, the odds of having a ulcerated tumor for a patient that is still alive by the end of the study is  0.2718238 times odds of patient died by melanoma
+
+-coefficient for thickness_c: controlling for the status of the patient by the end of the study, for every 1 mm increase in the tumor thickness, odds of patient having a ulcerated tumor increase by a factor of 1.4692510.
+
+From the confusion matrix and Accuracy, Sensitivity (TPR), Specificity (TNR), and Recall (PPV) of the model, I concluded that
+the logistic regression model is doing quite well in predicting the ulceration of tumors in the patient (the AUC is 0.82454). From the confusion matrix we can see that out of all 115 patients with not ulcerated tumor, our model predicted correctly 98 of them while only 17 were false positive, the true negative rate is pretty high at 85.22%. out of 90 patients with ulcerated tumors, the model correctly predicted 56 of them as true positve but 34 patients were predicted wrong as false negative, the true positive rate is ok at 62.22%. the accuracy of the model is 72.12% and the recall of the model is 76.71%, both are pretty good.
+
+The AUC is 0.82454, which means the probabilty that a randomly selected person with ulcerated tumor has 82.454% chance being positively predicted by the model than a randomly selected
+person without ulcerated tumor
+
+After the 10 fold cross validation test:
+there is a small decrease in the AUC after the 10 fold CV, the AUC went from 0.82454 to 0.8235 when predicting out of sample. but that's still good for AUC. This means the original model doesn't  overfit by too much so the post-CV model still yield a good AUC. The accuracy of the post CV model actually increased to 74.11% while the recell decrease by a little bit to 75.9%. the true positive rate decrease quite a bit, from 85.22% to 62.39% but that means the tradeoff increases the true negative rate, which raised to 82.66% from 62.22%. All in all, the original model is pretty good at predicting whether the patients have ulcerated tumor or not in out-of-sample situation.
+
+#####part 6
+```{r}
+# lasso regression on the ulceration of the tumor
+library(glmnet)
+y<-as.matrix(melanoma$ulcer)
+x<-model.matrix(ulcer~.,data=melanoma)[,-1]
+x<-scale(x)
+cv <- cv.glmnet(x,y,family="binomial")
+lasso<-glmnet(x,y, family="binomial", lambda=cv$lambda.1se)
+coef(lasso)
+# 10-fold CV using the lasso retained variables
+lassodata <- melanoma %>% select(ulcer, time, status, thickness)
+head(lassodata)
+k=10
+data <- lassodata %>% sample_frac 
+folds <- ntile(1:nrow(data),n=10) 
+diags<-NULL
+for(i in 1:k){
+  train <- data[folds!=i,] 
+  test <- data[folds==i,] 
+  truth1 <- test$ulcer 
+  fit4<-glm(ulcer~., data=train, family="binomial")
+  prob4 <- predict(fit4, newdata = test, type="response")
+  diags<-rbind(diags,class_diag(prob4,truth1))
+}
+summarize_all(diags,mean)
+```
+*interpretations and answer*
+
+after running lasso regression on all the predictors for ulceration of tumor, only the three variables are retaianed: survival time of the patient, the ending status of the patient, and the thickness of the tumor.
+
+after doing the 10-fold CV using lasso-selected model, the out of sample accuracy for this model (AUC = 0.8170) is very similar to the result I got from part 5 (AUC = 0.8245), both of which are pretty good though. Suprisingly the lasso model didn't improve the model from part5. I think this is due to the fact that the model I used for part 5 is already perdicting ulcer from just status and thickness while the lasso model just add the survival time to the predictors. In addition, the status of the patients at the end of the study is closely related to the survival time of the patient, which males having staus and time together in a model feels a little redundant.

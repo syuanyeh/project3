@@ -1,0 +1,26 @@
+```{r}
+Data <- AnimalDataANOVA
+Tdata <- animal_behaviour_data
+summary(aov(Counts~Behaviors, data=Data))
+pairwise.t.test(Data$Counts, Data$Behaviors, p.adj = "none")
+
+0.05/46
+0.001086957
+```
+
+```{r}
+obs_F<- 7.931 
+Fs<-replicate(5000,{
+new<-Data%>%mutate(Counts=sample(Counts)) 
+SSW <- new%>%group_by(Behaviors)%>%summarize(SSW=sum((Counts-mean(Counts))^2))%>%
+summarize(sum(SSW))%>%pull
+SSB<- new%>%mutate(mean=mean(Counts))%>%group_by(Behaviors)%>%mutate(groupmean=mean(Counts))%>%
+summarize(SSB=sum((mean-groupmean)^2))%>%summarize(sum(SSB))%>%pull
+(SSB/9)/(SSW/152)
+})
+hist(Fs, prob=T); abline(v = obs_F, col="red",add=T)
+mean(Fs>obs_F)
+```
+
+
+
